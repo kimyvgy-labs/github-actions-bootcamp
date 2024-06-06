@@ -128,3 +128,44 @@ on:
             ${{ secrets.REGISTRY_SERVER }}/${{ github.repository }}:build-${{ vars.GITHUB_RUN_NUMBER }}
 ```
 8. Check the workflow logs
+
+## Lab 5: Continuous Deployment using SSH
+
+In this lab, we will setup continuous deployment for project using SSH key.
+
+Requirements:
+- Add new job named `deploy`. It should exec the deploy script.
+- The `deploy` job will be trigger after the docker built/pushed successfully. If Docker CI failed, the deploy job shouldn't run.
+- The `deploy` job shouldn't trigger during pull request.
+
+Prepare:
+- Generate a new SSH Key and add the public key to file `~/.ssh/authorized_keys`
+- Make sure you can open SSH connection from your local to the server
+- Next, prepare some secret variables for your repository:
+  - `SSH_PRIVATE_KEY`: The SSH private key (PEM format)
+  - `SSH_SERVER_IP`: The IP address of the server
+  - `SSH_USER`: The username will be used to authenticate with SSH server
+- Now, let's add the deploy job:
+```yaml
+  deploy:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    needs: docker
+    env:
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      SSH_SERVER_IP: ${{ secrets.SSH_SERVER_IP }}
+      SSH_USER: ${{ secrets.SSH_USER }}
+      DOCKER_IMAGE: ${{ secrets.REGISTRY_SERVER }}/${{ github.repository }}:build-${{ vars.GITHUB_RUN_NUMBER }}
+    steps:
+      - name: Run ssh-agent in background
+        run: eval "$(ssh-agent -s)"
+      - name: Add SSH Key
+        run: |-
+          echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
+          ssh-add -l
+      - name: Run deploy script
+        run: |-
+          ssh $SSH_USER@$SSH_SERVER_IP -t "docker pull $DOCKER_IMAGE"
+          ssh $SSH_USER@$SSH_SERVER_IP -t "DOCKER_IMAGE=$DOCKER_IMAGE docker-compose up -d"
+```
+- Commit and check the workflow logs
