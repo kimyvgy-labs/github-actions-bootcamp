@@ -14,7 +14,7 @@ jobs:
       VPN_PASSWORD: ${{ secrets.VPN_PASSWORD }}
     steps:
     - name: Install dependencies
-      run: apt install -y openfortivpn ppp
+      run: sudo apt install -y openfortivpn ppp
     - name: Setup openfortivpn
       run: |-
         touch openfortivpn.conf
@@ -25,5 +25,5 @@ jobs:
         echo "password = $VPN_PASSWORD" >> openfortivpn.conf
     - name: Trust certificate
       run: |-
-        openfortivpn -c openfortivpn.conf 2>&1 > connect.log || true
+        sudo openfortivpn -c openfortivpn.conf 2>&1 > connect.log || true
         cat connect.log
