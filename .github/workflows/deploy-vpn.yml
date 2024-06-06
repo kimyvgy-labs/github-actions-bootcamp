@@ -5,13 +5,16 @@ on:
     branches: [ "vpn" ]
 
 jobs:
-  build:
+  vpn:
     runs-on: ubuntu-latest
     env:
       VPN_SERVER_IP: ${{ secrets.VPN_SERVER_IP }}
       VPN_SERVER_PORT: ${{ secrets.VPN_SERVER_PORT }}
       VPN_USERNAME: ${{ secrets.VPN_USERNAME }}
       VPN_PASSWORD: ${{ secrets.VPN_PASSWORD }}
+      SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      SSH_SERVER_IP: ${{ secrets.SSH_SERVER_IP }}
+      SSH_USER: ${{ secrets.SSH_USER }}
     steps:
     - name: Install dependencies
       run: sudo apt install -y openfortivpn ppp
@@ -26,4 +29,10 @@ jobs:
     - name: Trust certificate
       run: |-
         sudo openfortivpn -c openfortivpn.conf 2>&1 > connect.log || true
-        cat connect.log
+        grep 'trusted-cert =' connect.log | head -n 1 | awk '{print $2 "=" $4}' >> openfortivpn.conf
+    - name: SSH deploy
+      run: |-
+        eval "$(ssh-agent -s)"
+        echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
+        ssh-add -l
+        ssh $SSH_USER@$SSH_SERVER_IP -t "echo 'Done'"
