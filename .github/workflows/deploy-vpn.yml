@@ -1,0 +1,29 @@
+name: deploy-vpn
+
+on:
+  push:
+    branches: [ "vpn" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      VPN_SERVER_IP: ${{ secrets.VPN_SERVER_IP }}
+      VPN_SERVER_PORT: ${{ secrets.VPN_SERVER_PORT }}
+      VPN_USERNAME: ${{ secrets.VPN_USERNAME }}
+      VPN_PASSWORD: ${{ secrets.VPN_PASSWORD }}
+    steps:
+    - name: Install dependencies
+      run: apt install -y openfortivpn ppp
+    - name: Setup openfortivpn
+      run: |-
+        touch openfortivpn.conf
+        chmod go= openfortivpn.conf
+        echo "host = $VPN_SERVER_IP" >> openfortivpn.conf
+        echo "port = $VPN_SERVER_PORT" >> openfortivpn.conf
+        echo "username = $VPN_USERNAME" >> openfortivpn.conf
+        echo "password = $VPN_PASSWORD" >> openfortivpn.conf
+    - name: Trust certificate
+      run: |-
+        openfortivpn -c openfortivpn.conf 2>&1 > connect.log || true
+        cat connect.log
