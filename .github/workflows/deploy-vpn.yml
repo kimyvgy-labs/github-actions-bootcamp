@@ -30,6 +30,7 @@ jobs:
       run: |-
         sudo openfortivpn -c openfortivpn.conf 2>&1 > connect.log || true
         grep 'trusted-cert =' connect.log | head -n 1 | awk '{print $2 "=" $4}' >> openfortivpn.conf
+        sudo openfortivpn -c openfortivpn.conf
     - name: SSH deploy
       run: |-
         eval "$(ssh-agent -s)"
